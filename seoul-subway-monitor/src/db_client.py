@@ -9,15 +9,15 @@ class SubwayDBClient:
             try:
                 self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
             except Exception as e:
-                self.logger.error(f"Failed to initialize Supabase client: {e}")
+                self.logger.error(f"Supabase 클라이언트 초기화 실패: {e}")
                 self.supabase = None
         else:
             self.supabase = None
-            self.logger.error("Supabase credentials missing. DB operations will fail.")
+            self.logger.error("Supabase 인증 정보 누락. DB 작업이 실패할 것입니다.")
 
     def insert_data(self, data_list):
         """
-        Transform and insert data into realtime_subway_positions table.
+        데이터를 변환하여 realtime_subway_positions 테이블에 삽입합니다.
         """
         if not self.supabase or not data_list:
             return
@@ -25,11 +25,11 @@ class SubwayDBClient:
         records = []
         for item in data_list:
             try:
-                # Safe boolean conversion
+                # 불리언 타입으로 안전하게 변환
                 is_last_str = str(item.get("lstcarAt", "0"))
                 is_last = True if is_last_str == '1' else False
                 
-                # Transform keys to match DB schema
+                # DB 스키마에 맞춰 키 이름 변환
                 record = {
                     "line_id": item.get("subwayId"),
                     "line_name": item.get("subwayNm"),
@@ -47,7 +47,7 @@ class SubwayDBClient:
                 }
                 records.append(record)
             except Exception as e:
-                self.logger.warning(f"Error parsing item {item}: {e}")
+                self.logger.warning(f"항목 파싱 오류 {item}: {e}")
                 continue
         
         if not records:
@@ -55,6 +55,6 @@ class SubwayDBClient:
 
         try:
             response = self.supabase.table("realtime_subway_positions").insert(records).execute()
-            self.logger.info(f"Successfully inserted {len(records)} records.")
+            self.logger.info(f"{len(records)}건의 데이터가 성공적으로 삽입되었습니다.")
         except Exception as e:
-            self.logger.error(f"Failed to insert data into Supabase: {e}")
+            self.logger.error(f"Supabase 데이터 삽입 실패: {e}")

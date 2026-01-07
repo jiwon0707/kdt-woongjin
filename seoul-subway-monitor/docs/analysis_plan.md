@@ -1,50 +1,50 @@
-# Data Analysis Plan for Seoul Subway Monitoring
+# 서울 지하철 모니터링 데이터 분석 계획
 
-This document outlines the analytical approaches for monitoring the Seoul Subway system using real-time position data.
+이 문서는 실시간 위치 데이터를 활용한 서울 지하철 모니터링 시스템의 분석 접근 방식을 정의합니다.
 
 ## 1. 배차 간격 정기성 분석 (Interval Regularity Analysis)
-**Goal**: Detect bunching (trains too close) or gaps (trains too far apart) in service.
+**목표**: 배차 간격이 너무 좁아지거나(Bunching) 너무 벌어지는(Gap) 현상을 탐지합니다.
 
-**Method**:
-1. Group data by `line_id`, `station_id`, and `direction_type`.
-2. Sort chronological arrivals (using `created_at` or `last_rec_time`).
-3. Calculate time difference ($\Delta t$) between consecutive train arrivals at the same station.
-4. **Anomaly Detection**: Use Z-score to identify intervals that deviate significantly from the mean for that time of day.
+**분석 방법**:
+1. 데이터를 `line_id`(호선), `station_id`(역), `direction_type`(방향) 별로 그룹화합니다.
+2. 도착 시간(`created_at` 또는 `last_rec_time`) 순으로 정렬합니다.
+3. 동일 역에 연속으로 도착하는 열차 간의 시간 차이($\Delta t$)를 계산합니다.
+4. **이상 탐지**: Z-score를 활용하여 해당 시간대의 평균 간격에서 크게 벗어나는 구간을 식별합니다.
 
-**Expected Output**:
-- Time-series chart of arrival intervals.
-- Alerts for "Bunching" events (Interval < 2 min where expected is 5 min).
+**예상 산출물**:
+- 도착 간격 시계열 차트.
+- "배차 밀림" 경고 (예: 예정 간격 5분인데 실제 간격 2분 미만인 경우).
 
 ## 2. 지연 발생구간 탐지 (Delay Hotspots)
-**Goal**: Identify stations where trains dwell longer than expected.
+**목표**: 열차가 예상보다 오래 머무르는 정체 역을 식별합니다.
 
-**Method**:
-1. Filter for events where `train_status` changes from `1` (Arrival) to `2` (Departure).
-2. Calculate `dwell_time` = time(Departure) - time(Arrival).
-3. Aggregate average dwell time by station and hour.
+**분석 방법**:
+1. `train_status`가 `1`(도착)에서 `2`(출발)로 변경되는 이벤트를 필터링합니다.
+2. `dwell_time`(체류 시간) = 출발 시간 - 도착 시간을 계산합니다.
+3. 역별, 시간대별 평균 체류 시간을 집계합니다.
 
-**Expected Output**:
-- Heatmap of stations colored by average dwell time.
-- Top 10 "Bottleneck" stations list.
+**예상 산출물**:
+- 평균 체류 시간에 따른 역별 히트맵.
+- 상위 10개 "병목" 역 리스트.
 
 ## 3. 회차 효율성 분석 (Turnaround Efficiency)
-**Goal**: Measure operation efficiency at terminal stations.
+**목표**: 종착역에서의 운영 효율성을 측정합니다.
 
-**Method**:
-1. Identify trains arriving at their `dest_station_id`.
-2. Match with the next departing train from that station in the opposite direction.
-   - *Note*: Requires heuristic matching if Train No changes.
-3. Calculate turnaround time.
+**분석 방법**:
+1. `dest_station_id`(종착역)에 도착한 열차를 식별합니다.
+2. 해당 역에서 반대 방향으로 출발하는 다음 열차와 매칭합니다.
+   - *참고*: 열차 번호가 변경될 경우 휴리스틱 매칭이 필요할 수 있습니다.
+3. 회차 소요 시간을 계산합니다.
 
-**Expected Output**:
-- Distribution of turnaround times by terminal station.
+**예상 산출물**:
+- 종착역별 회차 시간 분포.
 
 ## 4. 급행/일반 열차 간섭 분석 (Congestion/Overtake Analysis)
-**Goal**: Optimize the mix of Express (`is_express=1`) and Local (`is_express=0`) trains.
+**목표**: 급행(`is_express=1`) 열차와 일반(`is_express=0`) 열차 간의 조화를 최적화합니다.
 
-**Method**:
-1. Track distance/time between an Express train and the Local train ahead of it.
-2. Identify segments where the Local train speed drops significantly when an Express train is behind (indicating signal delays).
+**분석 방법**:
+1. 급행 열차와 그 앞서 가는 일반 열차 사이의 거리/시간 간격을 추적합니다.
+2. 뒤따르는 급행 열차로 인해 앞선 일반 열차의 속도가 급격히 떨어지는(신호 대기 등) 구간을 식별합니다.
 
-**Expected Output**:
-- map visualization of "Interference Zones".
+**예상 산출물**:
+- "간섭 발생 구간" 지도 시각화.
